@@ -544,6 +544,9 @@ declare_features! (
     /// For example, you can write `x @ Some(y)`.
     (active, bindings_after_at, "1.41.0", Some(65490), None),
 
+    /// Allows `#[cfg(version(..))]`.
+    (active, cfg_version, "1.41.0", Some(64796), None),
+
     // -------------------------------------------------------------------------
     // feature-group-end: actual feature gates
     // -------------------------------------------------------------------------

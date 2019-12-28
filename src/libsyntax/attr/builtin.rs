@@ -14,6 +14,7 @@ use syntax_pos::hygiene::Transparency;
 use syntax_pos::{symbol::sym, symbol::Symbol, Span};
 
 use rustc_error_codes::*;
+use log::info;
 
 pub fn is_builtin_attr(attr: &Attribute) -> bool {
     attr.ident().filter(|ident| is_builtin_attr_name(ident.name)).is_some()
@@ -587,7 +588,16 @@ pub fn cfg_matches(cfg: &ast::MetaItem, sess: &ParseSess, features: Option<&Feat
         if cfg.path.segments.len() != 1 {
             return error(cfg.path.span, "`cfg` predicate key must be an identifier");
         }
+        // info!("sess: {:?}", sess);
+        // info!("features: {:?}", features);
+        // TODO cfg_version
         match &cfg.kind {
+            MetaItemKind::List(ref mis) if cfg.name_or_empty() == sym::version => {
+
+                info!("mis: {:?}", mis[0].value_str());
+                info!("cfg: {:?}", cfg.kind);
+                unimplemented!();
+            }
             MetaItemKind::List(..) => {
                 error(cfg.span, "unexpected parentheses after `cfg` predicate key")
             }
@@ -601,6 +611,20 @@ pub fn cfg_matches(cfg: &ast::MetaItem, sess: &ParseSess, features: Option<&Feat
                     ),
                 );
                 true
+            }
+            MetaItemKind::Word if cfg.name_or_empty() == sym::version => {
+                info!("cfg: {:?}", cfg.name_or_empty());
+                info!("cfg: {:?}", cfg.kind);
+                eval_condition(cfg, sess, &mut |cfg| {
+                    info!("cfg: {:?}", cfg.name_or_empty());
+                    info!("cfg: {:?}", cfg.kind);
+                    unimplemented!();
+                })
+                // info!("meta_item: {:?}", cfg.meta_item().unwrap());
+                // if mis.len() != 1 {
+                //     span_err!(sess.span_diagnostic, cfg.span, E0536, "expected 1 cfg-pattern");
+                //     return false;
+                // }
             }
             MetaItemKind::NameValue(..) | MetaItemKind::Word => {
                 let ident = cfg.ident().expect("multi-segment cfg predicate");
@@ -627,6 +651,7 @@ pub fn eval_condition(
 ) -> bool {
     match cfg.kind {
         ast::MetaItemKind::List(ref mis) => {
+            info!("eval_condition: {:?}", mis);
             for mi in mis.iter() {
                 if !mi.is_meta_item() {
                     handle_errors(
