@@ -699,7 +699,7 @@ impl<T> Vec<T> {
     ///
     /// # Examples
     ///
-    /// Truncating a five element vector to two elements:
+    /// Truncating a five elements vector to two elements:
     ///
     /// ```
     /// let mut vec = vec![1, 2, 3, 4, 5];
