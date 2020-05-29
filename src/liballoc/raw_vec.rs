@@ -264,11 +264,7 @@ impl<T, A: AllocRef> RawVec<T, A> {
     /// # }
     /// ```
     pub fn reserve(&mut self, used_capacity: usize, needed_extra_capacity: usize) {
-        match self.try_reserve(used_capacity, needed_extra_capacity) {
-            Err(CapacityOverflow) => capacity_overflow(),
-            Err(AllocError { layout, .. }) => handle_alloc_error(layout),
-            Ok(()) => { /* yay */ }
-        }
+        handle_reserve(self.try_reserve(used_capacity, needed_extra_capacity));
     }
 
     /// The same as `reserve`, but returns on errors instead of panicking or aborting.
@@ -332,11 +328,7 @@ impl<T, A: AllocRef> RawVec<T, A> {
     ///
     /// Aborts on OOM.
     pub fn reserve_exact(&mut self, used_capacity: usize, needed_extra_capacity: usize) {
-        match self.try_reserve_exact(used_capacity, needed_extra_capacity) {
-            Err(CapacityOverflow) => capacity_overflow(),
-            Err(AllocError { layout, .. }) => handle_alloc_error(layout),
-            Ok(()) => { /* yay */ }
-        }
+        handle_reserve(self.try_reserve_exact(used_capacity, needed_extra_capacity));
     }
 
     /// The same as `reserve_exact`, but returns on errors instead of panicking or aborting.
@@ -363,11 +355,7 @@ impl<T, A: AllocRef> RawVec<T, A> {
     ///
     /// Aborts on OOM.
     pub fn shrink_to_fit(&mut self, amount: usize) {
-        match self.shrink(amount, MayMove) {
-            Err(CapacityOverflow) => capacity_overflow(),
-            Err(AllocError { layout, .. }) => handle_alloc_error(layout),
-            Ok(()) => { /* yay */ }
-        }
+        handle_reserve(self.shrink(amount, MayMove));
     }
 }
 
@@ -552,6 +540,15 @@ unsafe impl<#[may_dangle] T, A: AllocRef> Drop for RawVec<T, A> {
         if let Some((ptr, layout)) = self.current_memory() {
             unsafe { self.alloc.dealloc(ptr, layout) }
         }
+    }
+}
+
+// Central function for reserve error handling.
+fn handle_reserve(result: Result<(), TryReserveError>) {
+    match result {
+        Err(CapacityOverflow) => capacity_overflow(),
+        Err(AllocError { layout, .. }) => handle_alloc_error(layout),
+        Ok(()) => { /* yay */ }
     }
 }
 
