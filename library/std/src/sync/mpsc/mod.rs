@@ -436,6 +436,9 @@ pub struct IntoIter<T> {
 ///
 /// Messages can be sent through this channel with [`send`].
 ///
+/// Note, all senders (the original and the clones) needs to be dropped for receiver
+/// to stop blocking to receive message with [`Receiver::recv`].
+///
 /// [`send`]: Sender::send
 ///
 /// # Examples
@@ -642,7 +645,7 @@ impl<T> UnsafeFlavor<T> for Receiver<T> {
 /// the same order as it was sent, and no [`send`] will block the calling thread
 /// (this channel has an "infinite buffer", unlike [`sync_channel`], which will
 /// block after its buffer limit is reached). [`recv`] will block until a message
-/// is available.
+/// is available while there are at least one [`Sender`] alive (including clones).
 ///
 /// The [`Sender`] can be cloned to [`send`] to the same channel multiple times, but
 /// only one [`Receiver`] is supported.
@@ -805,6 +808,11 @@ impl<T> Sender<T> {
 
 #[stable(feature = "rust1", since = "1.0.0")]
 impl<T> Clone for Sender<T> {
+    /// Clone a sender to send to other threads.
+    ///
+    /// Note, be aware of the lifetime of the sender such that all senders
+    /// (including the original) needs to be dropped in order for
+    /// [`Receiver::recv`] to stop blocking.
     fn clone(&self) -> Sender<T> {
         let packet = match *unsafe { self.inner() } {
             Flavor::Oneshot(ref p) => {
@@ -1063,9 +1071,10 @@ impl<T> Receiver<T> {
     /// corresponding channel has hung up.
     ///
     /// This function will always block the current thread if there is no data
-    /// available and it's possible for more data to be sent. Once a message is
-    /// sent to the corresponding [`Sender`] (or [`SyncSender`]), then this
-    /// receiver will wake up and return that message.
+    /// available and it's possible for more data to be sent (at least one sender
+    /// is still alive). Once a message is sent to the corresponding [`Sender`]
+    /// (or [`SyncSender`]), then this receiver will wake up and return that
+    /// message.
     ///
     /// If the corresponding [`Sender`] has disconnected, or it disconnects while
     /// this call is blocking, this call will wake up and return [`Err`] to
@@ -1145,9 +1154,10 @@ impl<T> Receiver<T> {
     /// corresponding channel has hung up, or if it waits more than `timeout`.
     ///
     /// This function will always block the current thread if there is no data
-    /// available and it's possible for more data to be sent. Once a message is
-    /// sent to the corresponding [`Sender`] (or [`SyncSender`]), then this
-    /// receiver will wake up and return that message.
+    /// available and it's possible for more data to be sent (at least one sender
+    /// is still alive). Once a message is sent to the corresponding [`Sender`]
+    /// (or [`SyncSender`]), then this receiver will wake up and return that
+    /// message.
     ///
     /// If the corresponding [`Sender`] has disconnected, or it disconnects while
     /// this call is blocking, this call will wake up and return [`Err`] to
